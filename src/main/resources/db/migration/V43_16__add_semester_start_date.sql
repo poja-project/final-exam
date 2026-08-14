@@ -1,0 +1,1 @@
+ALTER TABLE semester ADD COLUMN start_date DATE NOT NULL;
