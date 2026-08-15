@@ -10,7 +10,6 @@ import com.example.demo.service.dto.CourseAverageResult;
 import com.example.demo.service.dto.GraduateResult;
 import com.example.demo.service.dto.ReportCardResult;
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
@@ -54,7 +53,9 @@ public class GraduationEligibilityService {
         continue;
       }
 
-      BigDecimal overallAverage = creditWeightedAverage(threeYearCourses);
+      BigDecimal overallAverage =
+          GradeMath.arithmeticMean(
+              threeYearCourses.stream().map(CourseAverageResult::average).toList());
       ranked.add(
           new GraduateResult(
               0,
@@ -111,17 +112,5 @@ public class GraduationEligibilityService {
               });
     }
     return all;
-  }
-
-  private BigDecimal creditWeightedAverage(List<CourseAverageResult> courses) {
-    BigDecimal totalCredits =
-        courses.stream()
-            .map(c -> BigDecimal.valueOf(c.credit()))
-            .reduce(BigDecimal.ZERO, BigDecimal::add);
-    BigDecimal weightedSum =
-        courses.stream()
-            .map(c -> c.average().multiply(BigDecimal.valueOf(c.credit())))
-            .reduce(BigDecimal.ZERO, BigDecimal::add);
-    return weightedSum.divide(totalCredits, 2, RoundingMode.HALF_UP);
   }
 }

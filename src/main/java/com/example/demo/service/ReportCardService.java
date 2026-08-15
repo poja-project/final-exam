@@ -6,7 +6,6 @@ import com.example.demo.repository.SemesterRepository;
 import com.example.demo.service.dto.CourseAverageResult;
 import com.example.demo.service.dto.ReportCardResult;
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -45,24 +44,13 @@ public class ReportCardService {
             .mapToInt(CourseAverageResult::credit)
             .sum();
 
-    BigDecimal overallAverage = allComplete ? computeCreditWeightedAverage(allCourseResults) : null;
+    BigDecimal overallAverage =
+        allComplete
+            ? GradeMath.arithmeticMean(
+                allCourseResults.stream().map(CourseAverageResult::average).toList())
+            : null;
 
     return new ReportCardResult(
         studentId, schoolYearId, allCourseResults, overallAverage, creditsEarned, allComplete);
-  }
-
-  private BigDecimal computeCreditWeightedAverage(List<CourseAverageResult> courses) {
-    BigDecimal totalCredits =
-        courses.stream()
-            .map(c -> BigDecimal.valueOf(c.credit()))
-            .reduce(BigDecimal.ZERO, BigDecimal::add);
-    if (totalCredits.signum() == 0) {
-      return BigDecimal.ZERO;
-    }
-    BigDecimal weightedSum =
-        courses.stream()
-            .map(c -> c.average().multiply(BigDecimal.valueOf(c.credit())))
-            .reduce(BigDecimal.ZERO, BigDecimal::add);
-    return weightedSum.divide(totalCredits, 2, RoundingMode.HALF_UP);
   }
 }
