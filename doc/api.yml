@@ -20,7 +20,7 @@ tags:
   - name: Web
 
 paths:
-  /login:
+  /web/login:
     get:
       tags: [Auth]
       summary: Login page (HTML Thymeleaf)
@@ -48,15 +48,15 @@ paths:
                 password: { type: string, format: password }
       responses:
         "302":
-          description: Redirect to /promotions on success, /login?error on failure
+          description: Redirect to /web/cohorts on success, /web/login?error on failure
 
-  /logout:
+  /web/logout:
     post:
       tags: [Auth]
       summary: Logout (invalidates the session)
       responses:
         "302":
-          description: Redirect to /login?logout
+          description: Redirect to /web/login?logout
 
   /admin/users/teachers:
     post:
@@ -132,44 +132,44 @@ paths:
                 items: { $ref: "#/components/schemas/UserResponse" }
         "403": { description: Access denied }
 
-  /admin/promotions:
+  /admin/cohorts:
     post:
       tags: [Academic registry]
-      summary: Create a promotion (ADMIN)
+      summary: Create a cohort (ADMIN)
       requestBody:
         required: true
         content:
           application/json:
-            schema: { $ref: "#/components/schemas/CreatePromotionRequest" }
+            schema: { $ref: "#/components/schemas/CreateCohortRequest" }
       responses:
         "201":
-          description: Promotion created
+          description: Cohort created
           content:
             application/json:
-              schema: { $ref: "#/components/schemas/PromotionResponse" }
+              schema: { $ref: "#/components/schemas/CohortResponse" }
         "409":
-          description: Promotion label already used
+          description: Cohort label already used
           content:
             application/json:
               schema: { $ref: "#/components/schemas/ErrorResponse" }
 
-  /promotions:
+  /cohorts:
     get:
       tags: [Academic registry]
-      summary: List promotions
+      summary: List cohorts
       responses:
         "200":
-          description: List of promotions
+          description: List of cohorts
           content:
             application/json:
               schema:
                 type: array
-                items: { $ref: "#/components/schemas/PromotionResponse" }
+                items: { $ref: "#/components/schemas/CohortResponse" }
 
-  /admin/promotions/{id}/school-years:
+  /admin/cohorts/{id}/school-years:
     post:
       tags: [Academic registry]
-      summary: Create a school year for a promotion (ADMIN)
+      summary: Create a school year for a cohort (ADMIN)
       parameters:
         - name: id
           in: path
@@ -187,7 +187,7 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/SchoolYearResponse" }
         "404":
-          description: Promotion not found
+          description: Cohort not found
           content:
             application/json:
               schema: { $ref: "#/components/schemas/ErrorResponse" }
@@ -214,7 +214,7 @@ paths:
                   minimum: 1
                   maximum: 6
                   description: >
-                    Global semester number over the 3 years of the promotion:
+                    Global semester number over the 3 years of the cohort:
                     year 1 → S1-S2, year 2 → S3-S4, year 3 → S5-S6. Must be
                     consistent with the school year (422 otherwise).
       responses:
@@ -608,11 +608,11 @@ paths:
         "202": { description: Asynchronous processing triggered }
         "403": { description: Access denied }
 
-  /admin/promotions/{id}/results:
+  /admin/cohorts/{id}/results:
     get:
       tags: [Report cards]
       summary: >
-        Results of all the students of a promotion (ADMIN): average, earned
+        Results of all the students of a cohort (ADMIN): average, earned
         credits and global status. Optional schoolYearId filter; absent = the
         whole 3 years.
       parameters:
@@ -634,10 +634,10 @@ paths:
                 items: { $ref: "#/components/schemas/StudentResultResponse" }
         "403": { description: Access denied }
 
-  /promotions/{id}/graduates:
+  /cohorts/{id}/graduates:
     get:
       tags: [Graduates]
-      summary: Ranked list of the graduates of a promotion (ADMIN)
+      summary: Ranked list of the graduates of a cohort (ADMIN)
       description: >
         A student graduates if he has a grade ≥ 10 in every course of his
         program (groups followed over the 3 years, via the enrollment history).
@@ -662,7 +662,7 @@ paths:
                 items: { $ref: "#/components/schemas/GraduateResponse" }
         "403": { description: Access denied }
 
-  /promotions/{id}/graduates/export:
+  /cohorts/{id}/graduates/export:
     post:
       tags: [Graduates]
       summary: Generates the XLSX graduates file and uploads it to S3 (ADMIN)
@@ -680,7 +680,7 @@ paths:
         "201": { description: File generated and available for download }
         "403": { description: Access denied }
 
-  /promotions/{id}/graduates/download:
+  /cohorts/{id}/graduates/download:
     get:
       tags: [Graduates]
       summary: Downloads the XLSX graduates file directly (no email) (ADMIN)
@@ -703,10 +703,10 @@ paths:
         "302": { description: Redirect to a presigned S3 URL (implementation-dependent) }
         "403": { description: Access denied }
 
-  /web/promotions:
+  /web/cohorts:
     get:
       tags: [Web]
-      summary: HTML page listing the promotions with graduate download buttons
+      summary: HTML page listing the cohorts with graduate download buttons
       responses:
         "200":
           description: HTML page
@@ -748,13 +748,13 @@ components:
 
     CreateStudentRequest:
       type: object
-      required: [lastName, firstName, email, password, promotionId]
+      required: [lastName, firstName, email, password, cohortId]
       properties:
         lastName: { type: string }
         firstName: { type: string }
         email: { type: string, format: email }
         password: { type: string, format: password }
-        promotionId: { type: string, format: uuid }
+        cohortId: { type: string, format: uuid }
 
     StudentResponse:
       type: object
@@ -764,16 +764,16 @@ components:
         lastName: { type: string }
         firstName: { type: string }
         email: { type: string, format: email }
-        promotionId: { type: string, format: uuid }
+        cohortId: { type: string, format: uuid }
 
-    CreatePromotionRequest:
+    CreateCohortRequest:
       type: object
       required: [label, entryYear]
       properties:
         label: { type: string, example: "Promo 2023" }
         entryYear: { type: integer, example: 2023 }
 
-    PromotionResponse:
+    CohortResponse:
       type: object
       properties:
         id: { type: string, format: uuid }
@@ -793,7 +793,7 @@ components:
         id: { type: string, format: uuid }
         label: { type: string }
         yearNumber: { type: integer }
-        promotionId: { type: string, format: uuid }
+        cohortId: { type: string, format: uuid }
 
     SemesterResponse:
       type: object
@@ -820,7 +820,7 @@ components:
 
     CreateGroupRequest:
       type: object
-      required: [reference, promotionId]
+      required: [reference, cohortId]
       properties:
         reference: { type: string }
         track:
@@ -828,7 +828,7 @@ components:
           enum: [EL, TN]
           nullable: true
           description: null = common group (years 1-2)
-        promotionId: { type: string, format: uuid }
+        cohortId: { type: string, format: uuid }
 
     GroupResponse:
       type: object
@@ -836,7 +836,7 @@ components:
         id: { type: string, format: uuid }
         reference: { type: string }
         track: { type: string, enum: [EL, TN], nullable: true }
-        promotionId: { type: string, format: uuid }
+        cohortId: { type: string, format: uuid }
 
     GroupEnrollmentResponse:
       type: object
