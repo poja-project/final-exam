@@ -16,21 +16,23 @@ class GradeMathTest {
 
   @Test
   void arithmeticMeanIsUnweighted() {
-    assertEquals(new BigDecimal("13.00"),
+    assertEquals(
+        new BigDecimal("13.00"),
         GradeMath.arithmeticMean(
             List.of(new BigDecimal("10"), new BigDecimal("12"), new BigDecimal("17"))));
   }
 
   @Test
   void arithmeticMeanIgnoresCredits() {
-    assertEquals(new BigDecimal("13.00"),
-        GradeMath.arithmeticMean(
-            List.of(new BigDecimal("8"), new BigDecimal("18"))));
+    assertEquals(
+        new BigDecimal("13.00"),
+        GradeMath.arithmeticMean(List.of(new BigDecimal("8"), new BigDecimal("18"))));
   }
 
   @Test
   void meanRoundedHalfUp() {
-    assertEquals(new BigDecimal("10.33"),
+    assertEquals(
+        new BigDecimal("10.33"),
         GradeMath.arithmeticMean(
             List.of(new BigDecimal("10"), new BigDecimal("10.5"), new BigDecimal("10.5"))));
   }

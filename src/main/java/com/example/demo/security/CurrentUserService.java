@@ -19,7 +19,6 @@ public class CurrentUserService {
   }
 
   public User requireUser() {
-    return currentUser()
-        .orElseThrow(() -> DomainException.forbidden("Authentication required"));
+    return currentUser().orElseThrow(() -> DomainException.forbidden("Authentication required"));
   }
 }

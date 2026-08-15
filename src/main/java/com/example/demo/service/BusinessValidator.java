@@ -4,7 +4,6 @@ import com.example.demo.exception.DomainException;
 import java.math.BigDecimal;
 import java.util.List;
 
-
 public final class BusinessValidator {
 
   private static final BigDecimal COEFF_TOLERANCE = new BigDecimal("0.0001");
@@ -53,17 +52,14 @@ public final class BusinessValidator {
   }
 
   public static void validateGradeValue(BigDecimal value) {
-    if (value == null
-        || value.compareTo(BigDecimal.ZERO) < 0
-        || value.compareTo(MAX_GRADE) > 0) {
+    if (value == null || value.compareTo(BigDecimal.ZERO) < 0 || value.compareTo(MAX_GRADE) > 0) {
       throw DomainException.badRequest("Grade value must be between 0 and 20, got: " + value);
     }
   }
 
   public static void validateReasonRequired(boolean gradeAlreadyExists, String reason) {
     if (gradeAlreadyExists && (reason == null || reason.isBlank())) {
-      throw DomainException.badRequest(
-          "A reason is mandatory when modifying an existing grade");
+      throw DomainException.badRequest("A reason is mandatory when modifying an existing grade");
     }
   }
 

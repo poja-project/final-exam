@@ -7,8 +7,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import com.example.demo.exception.DomainException;
 import java.math.BigDecimal;
 import java.util.List;
-
-import com.example.demo.service.BusinessValidator;
 import org.junit.jupiter.api.Test;
 
 class BusinessValidatorTest {
@@ -25,9 +23,12 @@ class BusinessValidatorTest {
 
   @Test
   void semesterNumberMismatchThrows() {
-    assertThrows(DomainException.class, () -> BusinessValidator.validateSemesterNumberForYear(3, 1));
-    assertThrows(DomainException.class, () -> BusinessValidator.validateSemesterNumberForYear(6, 2));
-    assertThrows(DomainException.class, () -> BusinessValidator.validateSemesterNumberForYear(4, 0));
+    assertThrows(
+        DomainException.class, () -> BusinessValidator.validateSemesterNumberForYear(3, 1));
+    assertThrows(
+        DomainException.class, () -> BusinessValidator.validateSemesterNumberForYear(6, 2));
+    assertThrows(
+        DomainException.class, () -> BusinessValidator.validateSemesterNumberForYear(4, 0));
   }
 
   @Test
@@ -65,7 +66,8 @@ class BusinessValidatorTest {
     assertDoesNotThrow(
         () ->
             BusinessValidator.validateCoefficientsSum(
-                List.of(new BigDecimal("0.3333"), new BigDecimal("0.3333"), new BigDecimal("0.3333"))));
+                List.of(
+                    new BigDecimal("0.3333"), new BigDecimal("0.3333"), new BigDecimal("0.3333"))));
   }
 
   @Test
@@ -84,8 +86,10 @@ class BusinessValidatorTest {
   void gradeValueMustBeBetweenZeroAndTwenty() {
     assertDoesNotThrow(() -> BusinessValidator.validateGradeValue(new BigDecimal("0")));
     assertDoesNotThrow(() -> BusinessValidator.validateGradeValue(new BigDecimal("20")));
-    assertThrows(DomainException.class, () -> BusinessValidator.validateGradeValue(new BigDecimal("20.5")));
-    assertThrows(DomainException.class, () -> BusinessValidator.validateGradeValue(new BigDecimal("-0.1")));
+    assertThrows(
+        DomainException.class, () -> BusinessValidator.validateGradeValue(new BigDecimal("20.5")));
+    assertThrows(
+        DomainException.class, () -> BusinessValidator.validateGradeValue(new BigDecimal("-0.1")));
     assertThrows(DomainException.class, () -> BusinessValidator.validateGradeValue(null));
   }
 
