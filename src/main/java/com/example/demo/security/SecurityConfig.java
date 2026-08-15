@@ -22,81 +22,84 @@ import org.springframework.security.web.util.matcher.RequestMatcher;
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-  private final CustomUserDetailsService userDetailsService;
+    private final CustomUserDetailsService userDetailsService;
 
-  @Bean
-  public PasswordEncoder passwordEncoder() {
-    return new BCryptPasswordEncoder();
-  }
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
 
-  @Bean
-  public DaoAuthenticationProvider authenticationProvider() {
-    DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
-    provider.setUserDetailsService(userDetailsService);
-    provider.setPasswordEncoder(passwordEncoder());
-    return provider;
-  }
+    @Bean
+    public DaoAuthenticationProvider authenticationProvider() {
+        DaoAuthenticationProvider provider = new DaoAuthenticationProvider();
+        provider.setUserDetailsService(userDetailsService);
+        provider.setPasswordEncoder(passwordEncoder());
+        return provider;
+    }
 
-  @Bean
-  public AuthenticationManager authenticationManager(AuthenticationConfiguration config)
-      throws Exception {
-    return config.getAuthenticationManager();
-  }
+    @Bean
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration config)
+            throws Exception {
+        return config.getAuthenticationManager();
+    }
 
-  @Bean
-  public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-    RequestMatcher webMatcher = new AntPathRequestMatcher("/web/**");
+    @Bean
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        RequestMatcher webMatcher = new AntPathRequestMatcher("/web/**");
 
-    AuthenticationEntryPoint loginEntryPoint = new LoginUrlAuthenticationEntryPoint("/web/login");
-    AuthenticationEntryPoint basicEntryPoint =
-        new BasicAuthenticationEntryPoint() {
-          {
-            setRealmName("prog4");
-          }
-        };
+        AuthenticationEntryPoint loginEntryPoint = new LoginUrlAuthenticationEntryPoint("/web/login");
+        AuthenticationEntryPoint basicEntryPoint =
+                new BasicAuthenticationEntryPoint() {
+                    {
+                        setRealmName("prog4");
+                    }
+                };
 
-    LinkedHashMap<RequestMatcher, AuthenticationEntryPoint> entryPoints = new LinkedHashMap<>();
-    entryPoints.put(webMatcher, loginEntryPoint);
-    var delegatingEntryPoint =
-        new org.springframework.security.web.authentication.DelegatingAuthenticationEntryPoint(
-            entryPoints);
-    delegatingEntryPoint.setDefaultEntryPoint(basicEntryPoint);
+        LinkedHashMap<RequestMatcher, AuthenticationEntryPoint> entryPoints = new LinkedHashMap<>();
+        entryPoints.put(webMatcher, loginEntryPoint);
+        var delegatingEntryPoint =
+                new org.springframework.security.web.authentication.DelegatingAuthenticationEntryPoint(
+                        entryPoints);
+        delegatingEntryPoint.setDefaultEntryPoint(basicEntryPoint);
 
-    http.csrf(
-            csrf ->
-                csrf.ignoringRequestMatchers(
-                    "/auth/login", "/grades", "/exams")) // adjust per POJA/Thymeleaf needs
-        .sessionManagement(
-            session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
-        .authorizeHttpRequests(
-            auth ->
-                auth.requestMatchers("/auth/login", "/web/login", "/web/css/**")
-                    .permitAll()
-                    .requestMatchers("/admin/**")
-                    .hasRole("ADMIN")
-                    .requestMatchers("/cohorts/{id}/graduates/**")
-                    .hasRole("ADMIN")
-                    .requestMatchers("/exams")
-                    .hasAnyRole("ADMIN", "TEACHER")
-                    .requestMatchers("/grades")
-                    .hasAnyRole("ADMIN", "TEACHER")
-                    .requestMatchers("/students/**", "/web/**", "/cohorts")
-                    .authenticated()
-                    .anyRequest()
-                    .authenticated())
-        .formLogin(
-            form ->
-                form.loginPage("/web/login")
-                    .loginProcessingUrl("/web/login")
-                    .defaultSuccessUrl("/web/cohorts", true)
-                    .permitAll())
-        .httpBasic(basic -> basic.realmName("prog4")) // BasicAuthenticationFilter stays active
-        .exceptionHandling(
-            ex ->
-                ex.authenticationEntryPoint(
-                    delegatingEntryPoint)) // overrides default entry-point resolution
-        .authenticationProvider(authenticationProvider());
+        http.csrf(
+                        csrf ->
+                                csrf.ignoringRequestMatchers(
+                                        "/grades", "/exams"))
+                .sessionManagement(
+                        session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
+                .authorizeHttpRequests(
+                        auth ->
+                                auth.requestMatchers("/web/login", "/web/css/**")
+                                        .permitAll()
+                                        .requestMatchers("/admin/**")
+                                        .hasRole("ADMIN")
+                                        .requestMatchers("/cohorts/{id}/graduates/**")
+                                        .hasRole("ADMIN")
+                                        .requestMatchers("/exams")
+                                        .hasAnyRole("ADMIN", "TEACHER")
+                                        .requestMatchers("/grades")
+                                        .hasAnyRole("ADMIN", "TEACHER")
+                                        .requestMatchers("/students/**", "/web/**", "/cohorts")
+                                        .authenticated()
+                                        .anyRequest()
+                                        .authenticated())
+                .formLogin(
+                        form ->
+                                form.loginPage("/web/login")
+                                        .loginProcessingUrl("/web/login")
+                                        .defaultSuccessUrl("/web/cohorts", true)
+                                        .permitAll())
+                .logout(
+                        logout ->
+                                logout.logoutUrl("/web/logout").logoutSuccessUrl("/web/login?logout"))
+                .httpBasic(basic -> basic.realmName("prog4"))
+                .exceptionHandling(
+                        ex ->
+                                ex.authenticationEntryPoint(
+                                        delegatingEntryPoint))
+                .authenticationProvider(authenticationProvider());
 
-    return http.build();
-  }
+        return http.build();
+    }
 }
