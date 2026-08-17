@@ -62,12 +62,12 @@ public class SecurityConfig {
             entryPoints);
     delegatingEntryPoint.setDefaultEntryPoint(basicEntryPoint);
 
-    http.csrf(csrf -> csrf.ignoringRequestMatchers("/grades", "/exams"))
+    http.csrf(csrf -> csrf.ignoringRequestMatchers("/auth/login", "/grades", "/exams"))
         .sessionManagement(
             session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
         .authorizeHttpRequests(
             auth ->
-                auth.requestMatchers("/web/login", "/web/css/**")
+                auth.requestMatchers("/auth/login", "/web/login", "/web/css/**")
                     .permitAll()
                     .requestMatchers("/admin/**")
                     .hasRole("ADMIN")

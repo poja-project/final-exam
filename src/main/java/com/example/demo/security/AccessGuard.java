@@ -88,4 +88,14 @@ public class AccessGuard {
         .findByUser_Id(user.getId())
         .orElseThrow(() -> DomainException.forbidden("No student profile for this account"));
   }
+
+  public Teacher requireTeacherProfile() {
+    User user = currentUserService.requireUser();
+    if (user.getRole() != Role.TEACHER) {
+      throw DomainException.forbidden("Access denied: teacher required");
+    }
+    return teacherRepository
+        .findByUser_Id(user.getId())
+        .orElseThrow(() -> DomainException.forbidden("No teacher profile for this account"));
+  }
 }

@@ -26,4 +26,16 @@ public interface GradeRepository extends JpaRepository<Grade, UUID> {
       """)
   List<Grade> findCurrentGradesForExam(
       @org.springframework.data.repository.query.Param("examId") UUID examId);
+
+  @org.springframework.data.jpa.repository.Query(
+      """
+      SELECT g FROM Grade g
+      WHERE g.student.id = :studentId
+        AND g.enteredAt = (
+            SELECT MAX(g2.enteredAt) FROM Grade g2
+            WHERE g2.exam.id = g.exam.id AND g2.student.id = g.student.id
+        )
+      """)
+  List<Grade> findCurrentGradesForStudent(
+      @org.springframework.data.repository.query.Param("studentId") UUID studentId);
 }

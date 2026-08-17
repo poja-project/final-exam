@@ -13,7 +13,7 @@ public class DomainException extends RuntimeException {
     this.status = status;
   }
 
-    public static DomainException badRequest(String message) {
+  public static DomainException badRequest(String message) {
     return new DomainException(HttpStatus.BAD_REQUEST, message);
   }
 
