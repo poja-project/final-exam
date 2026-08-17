@@ -1,7 +1,9 @@
 package com.example.demo.exception;
 
+import lombok.Getter;
 import org.springframework.http.HttpStatus;
 
+@Getter
 public class DomainException extends RuntimeException {
 
   private final HttpStatus status;
@@ -11,11 +13,7 @@ public class DomainException extends RuntimeException {
     this.status = status;
   }
 
-  public HttpStatus getStatus() {
-    return status;
-  }
-
-  public static DomainException badRequest(String message) {
+    public static DomainException badRequest(String message) {
     return new DomainException(HttpStatus.BAD_REQUEST, message);
   }
 
