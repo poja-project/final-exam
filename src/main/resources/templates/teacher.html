@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>My Courses</title>
+</head>
+<body>
+<h1 th:text="'Teacher: ' + ${teacher.firstName} + ' ' + ${teacher.lastName}">Teacher</h1>
+
+<form method="post" th:action="@{/web/logout}">
+    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+    <button type="submit">Log out</button>
+</form>
+
+<h2>My Assignments</h2>
+<table border="1">
+    <thead>
+    <tr>
+        <th>Course</th>
+        <th>Title</th>
+        <th>Credits</th>
+        <th>Group</th>
+        <th>Semester</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr th:each="a : ${assignments}">
+        <td th:text="${a.course.reference}">-</td>
+        <td th:text="${a.course.title}">-</td>
+        <td th:text="${a.course.credit}">-</td>
+        <td th:text="${a.group.reference}">-</td>
+        <td th:text="'Semester ' + ${a.semester.number}">-</td>
+    </tr>
+    <tr th:if="${#lists.isEmpty(assignments)}">
+        <td colspan="5">No assignments found.</td>
+    </tr>
+    </tbody>
+</table>
+</body>
+</html>

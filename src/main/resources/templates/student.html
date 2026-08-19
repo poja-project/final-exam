@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>My Grades</title>
+</head>
+<body>
+<h1 th:text="'Student: ' + ${student.firstName} + ' ' + ${student.lastName} + ' (' + ${student.studentNumber} + ')'">Student</h1>
+
+<form method="post" th:action="@{/web/logout}">
+    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+    <button type="submit">Log out</button>
+</form>
+
+<h2>My Grades</h2>
+<table border="1">
+    <thead>
+    <tr>
+        <th>Student</th>
+        <th>Exam</th>
+        <th>Grade</th>
+        <th>Date</th>
+        <th>Reason</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr th:each="g : ${grades}">
+        <td th:text="${g.studentId}">-</td>
+        <td th:text="${g.examId}">-</td>
+        <td th:text="${g.value}">-</td>
+        <td th:text="${g.enteredAt}">-</td>
+        <td th:text="${g.reason ?: '-'}">-</td>
+    </tr>
+    <tr th:if="${#lists.isEmpty(grades)}">
+        <td colspan="5">No grades yet.</td>
+    </tr>
+    </tbody>
+</table>
+
+<h2>Request Report Card PDF</h2>
+<p>Select a school year, then click "Send PDF" to receive your report card by email.</p>
+<table border="1">
+    <thead>
+    <tr>
+        <th>School Year</th>
+        <th>Action</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr th:each="year : ${schoolYears}">
+        <td th:text="${year.label}">-</td>
+        <td>
+            <form method="post" th:action="@{'/students/' + ${student.id} + '/report-card/' + ${year.id} + '/pdf'}" style="display:inline">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                <button type="submit">Send PDF</button>
+            </form>
+        </td>
+    </tr>
+    <tr th:if="${#lists.isEmpty(schoolYears)}">
+        <td colspan="2">No school years available.</td>
+    </tr>
+    </tbody>
+</table>
+</body>
+</html>
