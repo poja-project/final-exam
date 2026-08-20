@@ -62,7 +62,7 @@ public class AccessGuard {
     }
   }
 
-  public void ensureAdminOrTeacherOfCourse(UUID courseId) {
+  public void ensureAdminOrTeacherOfCourse(UUID courseId, UUID semesterId) {
     User user = currentUserService.requireUser();
     if (user.getRole() == Role.ADMIN) {
       return;
@@ -74,8 +74,9 @@ public class AccessGuard {
         teacherRepository
             .findByUser_Id(user.getId())
             .orElseThrow(() -> DomainException.forbidden("No teacher profile for this account"));
-    if (!teacherAssignmentRepository.existsByTeacher_IdAndCourse_Id(teacher.getId(), courseId)) {
-      throw DomainException.forbidden("This course is not assigned to you");
+    if (!teacherAssignmentRepository.existsByTeacher_IdAndCourse_IdAndSemester_Id(
+        teacher.getId(), courseId, semesterId)) {
+      throw DomainException.forbidden("This course is not assigned to you for this semester");
     }
   }
 

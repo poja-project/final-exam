@@ -49,7 +49,6 @@ public class ReportCardService {
             ? GradeMath.arithmeticMean(
                 allCourseResults.stream().map(CourseAverageResult::average).toList())
             : null;
-
     return new ReportCardResult(
         studentId, schoolYearId, allCourseResults, overallAverage, creditsEarned, allComplete);
   }

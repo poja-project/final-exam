@@ -23,6 +23,7 @@ import org.springframework.security.web.util.matcher.RequestMatcher;
 public class SecurityConfig {
 
   private final CustomUserDetailsService userDetailsService;
+  private final RoleBasedSuccessHandler roleBasedSuccessHandler;
 
   @Bean
   public PasswordEncoder passwordEncoder() {
@@ -62,7 +63,18 @@ public class SecurityConfig {
             entryPoints);
     delegatingEntryPoint.setDefaultEntryPoint(basicEntryPoint);
 
-    http.csrf(csrf -> csrf.ignoringRequestMatchers("/auth/login", "/grades", "/exams"))
+    http.csrf(
+            csrf ->
+                csrf.ignoringRequestMatchers(
+                    "/auth/login",
+                    "/auth/logout",
+                    "/grades",
+                    "/exams",
+                    "/admin/**",
+                    "/cohorts/**",
+                    "/teachers/**",
+                    "/courses/**",
+                    "/students/**"))
         .sessionManagement(
             session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED))
         .authorizeHttpRequests(
@@ -85,7 +97,7 @@ public class SecurityConfig {
             form ->
                 form.loginPage("/web/login")
                     .loginProcessingUrl("/web/login")
-                    .defaultSuccessUrl("/web/cohorts", true)
+                    .successHandler(roleBasedSuccessHandler)
                     .permitAll())
         .logout(logout -> logout.logoutUrl("/web/logout").logoutSuccessUrl("/web/login?logout"))
         .httpBasic(basic -> basic.realmName("prog4"))
