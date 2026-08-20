@@ -1,0 +1,1127 @@
+openapi: 3.0.3
+info:
+  title: PROG4 final
+  version: "1.0.0"
+  description: >
+    Grade management API (L1–L3). Auth: session cookie (JSESSIONID) via
+    POST /auth/login (JSON) or form POST /web/login. HTTP Basic also accepted
+    for API clients. Login identifier is the account email (used as username).
+
+servers:
+  - url: /
+
+security:
+  - sessionAuth: []
+
+tags:
+  - name: Auth
+  - name: Users
+  - name: Academic registry
+  - name: Groups & assignments
+  - name: Exams & grades
+  - name: Report cards
+  - name: Graduates
+  - name: Web
+
+paths:
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: JSON login — creates JSESSIONID session
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string, format: email }
+                password: { type: string, format: password }
+      responses:
+        "200": { description: Authenticated; Set-Cookie JSESSIONID }
+        "401": { description: Invalid credentials }
+
+  /auth/logout:
+    post:
+      tags: [Auth]
+      summary: Invalidate the current session (JSON API)
+      responses:
+        "200": { description: Logged out }
+
+  /web/login:
+    get:
+      tags: [Auth]
+      summary: Login page (HTML Thymeleaf)
+      security: []
+      responses:
+        "200":
+          description: HTML login page
+          content:
+            text/html:
+              schema: { type: string }
+
+    post:
+      tags: [Auth]
+      summary: Spring Security form login (creates JSESSIONID)
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required: [username, password]
+              properties:
+                username:
+                  type: string
+                  format: email
+                  description: Account email (Spring Security username)
+                password: { type: string, format: password }
+      responses:
+        "302":
+          description: >
+            Redirect by role (ADMIN → /web/cohorts, STUDENT → /web/student/grades,
+            TEACHER → /web/teacher/courses) or /web/login?error on failure
+
+  /web/logout:
+    post:
+      tags: [Auth]
+      summary: Form logout (invalidates the session)
+      responses:
+        "302":
+          description: Redirect to /web/login?logout
+
+  /admin/users/teachers:
+    post:
+      tags: [Users]
+      summary: Create a teacher account (ADMIN only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateTeacherRequest" }
+      responses:
+        "201":
+          description: Teacher created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TeacherResponse" }
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "403": { description: Access denied }
+        "409":
+          description: >
+            Email already used, or other unique-constraint violation
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+
+  /admin/users/students:
+    post:
+      tags: [Users]
+      summary: Create a student account (ADMIN only)
+      description: >
+        studentNumber is auto-generated as STD-{entryYear}-{seq:04d} using a
+        global sequence (unique across all cohorts). Duplicate email → 409.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateStudentRequest" }
+      responses:
+        "201":
+          description: Student created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/StudentResponse" }
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "403": { description: Access denied }
+        "404":
+          description: Cohort not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "409":
+          description: >
+            Email already used, or other unique-constraint violation
+            (e.g. student_number)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+
+  /admin/users:
+    get:
+      tags: [Users]
+      summary: List users (ADMIN only)
+      parameters:
+        - name: role
+          in: query
+          schema: { type: string, enum: [STUDENT, TEACHER, ADMIN] }
+      responses:
+        "200":
+          description: List of users
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/UserResponse" }
+        "403": { description: Access denied }
+
+  /admin/cohorts:
+    post:
+      tags: [Academic registry]
+      summary: Create a cohort (ADMIN)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateCohortRequest" }
+      responses:
+        "201":
+          description: Cohort created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CohortResponse" }
+        "409":
+          description: Unique constraint violated (e.g. cohort label)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+
+  /cohorts:
+    get:
+      tags: [Academic registry]
+      summary: List cohorts
+      responses:
+        "200":
+          description: List of cohorts
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/CohortResponse" }
+
+  /admin/cohorts/{id}/school-years:
+    post:
+      tags: [Academic registry]
+      summary: Create a school year for a cohort (ADMIN)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateSchoolYearRequest" }
+      responses:
+        "201":
+          description: School year created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SchoolYearResponse" }
+        "404":
+          description: Cohort not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "409":
+          description: Unique constraint violated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+
+  /admin/school-years/{id}/semesters:
+    post:
+      tags: [Academic registry]
+      summary: Create a semester for a school year (ADMIN)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateSemesterRequest" }
+      responses:
+        "201":
+          description: Semester created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SemesterResponse" }
+        "404":
+          description: School year not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "409":
+          description: Unique constraint violated (school year + semester number)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+
+  /admin/courses:
+    post:
+      tags: [Academic registry]
+      summary: Create a course (ADMIN)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateCourseRequest" }
+      responses:
+        "201":
+          description: Course created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CourseResponse" }
+        "409":
+          description: Unique constraint violated (e.g. course reference)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+
+  /admin/semesters/{id}/courses:
+    post:
+      tags: [Academic registry]
+      summary: Attach a course to a semester, with optional EL/TN track (ADMIN)
+      description: >
+        track=null means shared UE. Business rule 30 credits/semester may be
+        enforced by validators (400 if exceeded).
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateCourseOfferingRequest" }
+      responses:
+        "201":
+          description: Course offering created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/CourseOfferingResponse" }
+        "404":
+          description: Semester or course not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "409":
+          description: Unique constraint violated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+
+  /admin/groups:
+    post:
+      tags: [Groups & assignments]
+      summary: Create a group (ADMIN)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateGroupRequest" }
+      responses:
+        "201":
+          description: Group created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GroupResponse" }
+        "404":
+          description: Cohort not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "409":
+          description: Unique constraint violated (reference + cohort)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+
+  /admin/students/{id}/enrollments:
+    post:
+      tags: [Groups & assignments]
+      summary: >
+        Enroll a student in a group (closes the previous active enrollment)
+        (ADMIN)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateEnrollmentRequest" }
+      responses:
+        "201":
+          description: Enrollment created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GroupEnrollmentResponse" }
+        "400":
+          description: Invalid enrollment (e.g. overlap)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "404":
+          description: Student or group not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+
+  /students/{id}/enrollments:
+    get:
+      tags: [Groups & assignments]
+      summary: Group enrollment history (ADMIN, or STUDENT on himself)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Enrollment history
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/GroupEnrollmentResponse" }
+        "403": { description: Access denied }
+
+  /admin/assignments:
+    post:
+      tags: [Groups & assignments]
+      summary: Assign a teacher to a course for a group and semester (ADMIN)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateAssignmentRequest" }
+      responses:
+        "201":
+          description: Assignment created
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/AssignmentResponse" }
+        "404":
+          description: Teacher, course, group or semester not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "409":
+          description: Unique constraint violated (assignment already exists)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+    get:
+      tags: [Groups & assignments]
+      summary: List assignments (ADMIN)
+      parameters:
+        - name: semesterId
+          in: query
+          schema: { type: string, format: uuid }
+        - name: teacherId
+          in: query
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: List of assignments
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/AssignmentResponse" }
+        "403": { description: Access denied }
+
+  /teachers/me/courses:
+    get:
+      tags: [Groups & assignments]
+      summary: Distinct courses assigned to the authenticated teacher (TEACHER)
+      responses:
+        "200":
+          description: Course summaries
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/CourseSummary" }
+        "403": { description: Access denied }
+
+  /exams:
+    post:
+      tags: [Exams & grades]
+      summary: Create one or more exams for a course/semester (ADMIN or assigned TEACHER)
+      description: >
+        Batch body. Sum of coeffs for the course/semester must equal 1
+        (fraction) or 100 (percent); otherwise 422. Teacher must be assigned
+        to the course for that semester.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateExamsRequest" }
+      responses:
+        "201":
+          description: Exams created
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/ExamResponse" }
+        "403": { description: Course not assigned to you for this semester }
+        "409":
+          description: Unique constraint violated
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "422":
+          description: Invalid coeff sum or course not offered in semester
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+
+  /courses/{id}/exams:
+    get:
+      tags: [Exams & grades]
+      summary: List exams of a course for a given semester
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: semesterId
+          in: query
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: List of exams
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/ExamResponse" }
+
+  /grades:
+    post:
+      tags: [Exams & grades]
+      summary: >
+        Record/update a grade (append-only). Each change inserts a new row.
+        reason is mandatory when updating an existing grade. ADMIN anywhere;
+        TEACHER only on courses assigned for that semester.
+      description: Grade value is between 0 and 20.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateGradeRequest" }
+      responses:
+        "201":
+          description: Grade recorded
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GradeResponse" }
+        "400":
+          description: Missing reason on update, or value out of [0,20]
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "403":
+          description: Course not assigned to you for this semester
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+
+  /exams/{id}/grades:
+    get:
+      tags: [Exams & grades]
+      summary: Current grades of an exam (ADMIN, or TEACHER if assigned)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Current grades (latest version per student)
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/GradeResponse" }
+        "403": { description: Access denied }
+
+  /students/{id}/grades:
+    get:
+      tags: [Exams & grades]
+      summary: Current grades of a student (ADMIN, or STUDENT on himself)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Current grades
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/GradeResponse" }
+        "403": { description: Access denied }
+
+  /exams/{id}/grades/{studentId}/history:
+    get:
+      tags: [Exams & grades]
+      summary: >
+        Append-only grade history (all versions with value, reason, author,
+        enteredAt). ADMIN anywhere; TEACHER if assigned for that semester.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: studentId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Grade versions, oldest to newest
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/GradeResponse" }
+        "403": { description: Access denied }
+
+  /students/me/grades:
+    get:
+      tags: [Exams & grades]
+      summary: Current grades of the authenticated student (STUDENT)
+      responses:
+        "200":
+          description: Current grades
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/GradeResponse" }
+        "403": { description: Access denied }
+
+  /students/{id}/report-card/{schoolYearId}:
+    get:
+      tags: [Report cards]
+      summary: Report card for a school year (STUDENT on himself, ADMIN anyone)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: schoolYearId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Report card
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ReportCardResponse" }
+        "403": { description: Access denied }
+        "404":
+          description: Student or school year not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+
+  /students/{id}/report-card/{schoolYearId}/pdf:
+    post:
+      tags: [Report cards]
+      summary: >
+        Async PDF report card — uploads to S3 and emails the link. Returns 202
+        immediately.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: schoolYearId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "202": { description: Asynchronous processing triggered }
+        "403": { description: Access denied }
+        "404":
+          description: Student not found
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+
+  /admin/cohorts/{id}/results:
+    get:
+      tags: [Report cards]
+      summary: >
+        Results of all students of a cohort over years 1–3 (ADMIN). Each
+        student has nested year results (COMPLETE / INCOMPLETE).
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Results per student
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/StudentResults" }
+        "403": { description: Access denied }
+
+  /cohorts/{id}/graduates:
+    get:
+      tags: [Graduates]
+      summary: Ranked graduates of a cohort for a track (ADMIN)
+      description: >
+        A student graduates if every course of their path has average ≥ 10
+        and is complete. Sorted by rank (overallAverage descending).
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: track
+          in: query
+          required: true
+          schema: { type: string, enum: [EL, TN] }
+      responses:
+        "200":
+          description: Graduates list, sorted by rank
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/GraduateResponse" }
+        "403": { description: Access denied }
+
+  /cohorts/{id}/graduates/export:
+    post:
+      tags: [Graduates]
+      summary: Generate XLSX graduates file and upload to S3 (ADMIN)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: track
+          in: query
+          required: true
+          schema: { type: string, enum: [EL, TN] }
+      responses:
+        "201": { description: File generated and available for download }
+        "403": { description: Access denied }
+
+  /cohorts/{id}/graduates/download:
+    get:
+      tags: [Graduates]
+      summary: Download XLSX graduates file directly (no email) (ADMIN)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+        - name: track
+          in: query
+          required: true
+          schema: { type: string, enum: [EL, TN] }
+      responses:
+        "200":
+          description: XLSX file stream
+          content:
+            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+              schema: { type: string, format: binary }
+        "403": { description: Access denied }
+        "404": { description: File not found (export first) }
+
+  /web/cohorts:
+    get:
+      tags: [Web]
+      summary: HTML page listing cohorts with graduate download buttons
+      responses:
+        "200":
+          description: HTML page
+          content:
+            text/html:
+              schema: { type: string }
+
+  /web/student/grades:
+    get:
+      tags: [Web]
+      summary: HTML page — authenticated student's grades
+      responses:
+        "200":
+          description: HTML page
+          content:
+            text/html:
+              schema: { type: string }
+
+  /web/teacher/courses:
+    get:
+      tags: [Web]
+      summary: HTML page — authenticated teacher's assignments
+      responses:
+        "200":
+          description: HTML page
+          content:
+            text/html:
+              schema: { type: string }
+
+components:
+  securitySchemes:
+    sessionAuth:
+      type: apiKey
+      in: cookie
+      name: JSESSIONID
+    basicAuth:
+      type: http
+      scheme: basic
+
+  schemas:
+    UserResponse:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        email: { type: string, format: email }
+        role: { type: string, enum: [STUDENT, TEACHER, ADMIN] }
+
+    CreateTeacherRequest:
+      type: object
+      required: [lastName, firstName, email, password]
+      properties:
+        lastName: { type: string }
+        firstName: { type: string }
+        email: { type: string, format: email }
+        password: { type: string, format: password }
+
+    TeacherResponse:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        lastName: { type: string }
+        firstName: { type: string }
+        email: { type: string, format: email }
+
+    CreateStudentRequest:
+      type: object
+      required: [lastName, firstName, email, password, cohortId]
+      properties:
+        lastName: { type: string }
+        firstName: { type: string }
+        email: { type: string, format: email }
+        password: { type: string, format: password }
+        cohortId: { type: string, format: uuid }
+
+    StudentResponse:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        studentNumber:
+          type: string
+          description: "Auto-generated STD-{entryYear}-{seq:04d} (global sequence)"
+          example: STD-2024-0003
+        lastName: { type: string }
+        firstName: { type: string }
+        email: { type: string, format: email }
+        cohortId: { type: string, format: uuid }
+
+    CreateCohortRequest:
+      type: object
+      required: [label, entryYear]
+      properties:
+        label: { type: string, example: "Promo 2023" }
+        entryYear: { type: integer, example: 2023 }
+
+    CohortResponse:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        label: { type: string }
+        entryYear: { type: integer }
+
+    CreateSchoolYearRequest:
+      type: object
+      required: [label, yearNumber]
+      properties:
+        label: { type: string, example: "2023-2024" }
+        yearNumber: { type: integer, minimum: 1, maximum: 3 }
+
+    SchoolYearResponse:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        label: { type: string }
+        yearNumber: { type: integer }
+        cohortId: { type: string, format: uuid }
+
+    CreateSemesterRequest:
+      type: object
+      required: [number, startDate, endDate]
+      properties:
+        number:
+          type: integer
+          minimum: 1
+          maximum: 6
+          description: Global semester number over 3 years (S1–S6)
+        startDate: { type: string, format: date }
+        endDate: { type: string, format: date }
+
+    SemesterResponse:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        number: { type: integer, description: Global number 1-6 over the 3 years }
+        schoolYearId: { type: string, format: uuid }
+        startDate: { type: string, format: date }
+        endDate: { type: string, format: date }
+
+    CreateCourseRequest:
+      type: object
+      required: [reference, title, credit]
+      properties:
+        reference: { type: string }
+        title: { type: string }
+        credit: { type: integer, minimum: 1 }
+
+    CourseResponse:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        reference: { type: string }
+        title: { type: string }
+        credit: { type: integer }
+
+    CreateCourseOfferingRequest:
+      type: object
+      required: [courseId]
+      properties:
+        courseId: { type: string, format: uuid }
+        track:
+          type: string
+          enum: [EL, TN]
+          nullable: true
+          description: null = shared UE
+
+    CourseOfferingResponse:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        courseId: { type: string, format: uuid }
+        semesterId: { type: string, format: uuid }
+        track: { type: string, enum: [EL, TN], nullable: true }
+
+    CreateGroupRequest:
+      type: object
+      required: [reference, cohortId]
+      properties:
+        reference: { type: string }
+        track:
+          type: string
+          enum: [EL, TN]
+          nullable: true
+          description: null = common group (years 1-2)
+        cohortId: { type: string, format: uuid }
+
+    GroupResponse:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        reference: { type: string }
+        track: { type: string, enum: [EL, TN], nullable: true }
+        cohortId: { type: string, format: uuid }
+
+    CreateEnrollmentRequest:
+      type: object
+      required: [groupId, startDate]
+      properties:
+        groupId: { type: string, format: uuid }
+        startDate: { type: string, format: date-time }
+
+    GroupEnrollmentResponse:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        groupId: { type: string, format: uuid }
+        startDate: { type: string, format: date-time }
+        endDate: { type: string, format: date-time, nullable: true }
+
+    CreateAssignmentRequest:
+      type: object
+      required: [teacherId, courseId, groupId, semesterId]
+      properties:
+        teacherId: { type: string, format: uuid }
+        courseId: { type: string, format: uuid }
+        groupId: { type: string, format: uuid }
+        semesterId: { type: string, format: uuid }
+
+    AssignmentResponse:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        teacherId: { type: string, format: uuid }
+        courseId: { type: string, format: uuid }
+        groupId: { type: string, format: uuid }
+        semesterId: { type: string, format: uuid }
+
+    CourseSummary:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        reference: { type: string }
+        title: { type: string }
+        credit: { type: integer }
+
+    ExamItem:
+      type: object
+      required: [date, coeff]
+      properties:
+        date: { type: string, format: date-time }
+        coeff:
+          type: number
+          example: 0.25
+          description: Share of final course grade (fraction or percent)
+
+    CreateExamsRequest:
+      type: object
+      required: [courseId, semesterId, exams]
+      properties:
+        courseId: { type: string, format: uuid }
+        semesterId: { type: string, format: uuid }
+        exams:
+          type: array
+          minItems: 1
+          items: { $ref: "#/components/schemas/ExamItem" }
+
+    ExamResponse:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        courseId: { type: string, format: uuid }
+        semesterId: { type: string, format: uuid }
+        date: { type: string, format: date-time }
+        coeff: { type: number }
+
+    CreateGradeRequest:
+      type: object
+      required: [studentId, examId, value]
+      properties:
+        studentId: { type: string, format: uuid }
+        examId: { type: string, format: uuid }
+        value:
+          type: number
+          minimum: 0
+          maximum: 20
+          description: Grade out of 20
+        reason:
+          type: string
+          nullable: true
+          description: Mandatory when updating an existing grade
+
+    GradeResponse:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        studentId: { type: string, format: uuid }
+        examId: { type: string, format: uuid }
+        value: { type: number }
+        enteredAt: { type: string, format: date-time }
+        reason: { type: string, nullable: true }
+        authorId: { type: string, format: uuid }
+
+    ReportCardCourseItem:
+      type: object
+      properties:
+        courseId: { type: string, format: uuid }
+        courseTitle: { type: string }
+        average: { type: number, nullable: true }
+        credit: { type: integer }
+        status: { type: string, enum: [COMPLETED, INCOMPLETE] }
+
+    ReportCardResponse:
+      type: object
+      properties:
+        studentId: { type: string, format: uuid }
+        schoolYearId: { type: string, format: uuid }
+        courses:
+          type: array
+          items: { $ref: "#/components/schemas/ReportCardCourseItem" }
+        generalAverage: { type: number, nullable: true }
+        creditsEarned: { type: integer }
+        globalStatus: { type: string, enum: [COMPLETED, INCOMPLETE] }
+
+    CohortResultsCourseItem:
+      type: object
+      properties:
+        courseId: { type: string, format: uuid }
+        courseTitle: { type: string }
+        average: { type: number, nullable: true }
+        credit: { type: integer }
+        status: { type: string, enum: [COMPLETE, INCOMPLETE] }
+
+    YearResult:
+      type: object
+      properties:
+        yearNumber: { type: integer }
+        courses:
+          type: array
+          items: { $ref: "#/components/schemas/CohortResultsCourseItem" }
+        overallAverage: { type: number, nullable: true }
+        creditsEarned: { type: integer }
+        overallStatus: { type: string, enum: [COMPLETE, INCOMPLETE] }
+
+    StudentResults:
+      type: object
+      properties:
+        studentId: { type: string, format: uuid }
+        studentNumber: { type: string }
+        lastName: { type: string }
+        firstName: { type: string }
+        years:
+          type: array
+          items: { $ref: "#/components/schemas/YearResult" }
+
+    GraduateResponse:
+      type: object
+      properties:
+        rank: { type: integer }
+        studentId: { type: string, format: uuid }
+        studentNumber: { type: string }
+        lastName: { type: string }
+        firstName: { type: string }
+        overallAverage: { type: number }
+
+    ErrorResponse:
+      type: object
+      properties:
+        timestamp: { type: string, format: date-time }
+        status: { type: integer, description: HTTP status code }
+        error: { type: string, description: HTTP reason phrase }
+        message: { type: string, description: Human-readable error message }

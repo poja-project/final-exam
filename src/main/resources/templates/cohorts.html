@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Cohorts</title>
+</head>
+<body>
+<h1>Cohorts</h1>
+
+<form method="post" th:action="@{/web/logout}">
+    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+    <button type="submit">Log out</button>
+</form>
+
+<table border="1">
+    <thead>
+    <tr>
+        <th>Cohort</th>
+        <th>Entry year</th>
+        <th>EL graduates</th>
+        <th>TN graduates</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr th:each="cohort : ${cohorts}">
+        <td th:text="${cohort.label}">Cohort 2023</td>
+        <td th:text="${cohort.entryYear}">2023</td>
+        <td>
+            <form method="post" th:action="@{'/cohorts/' + ${cohort.id} + '/graduates/export?track=EL'}" style="display:inline">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                <button type="submit">Export EL</button>
+            </form>
+            <a th:href="@{'/cohorts/' + ${cohort.id} + '/graduates/download?track=EL'}">Download EL</a>
+        </td>
+        <td>
+            <form method="post" th:action="@{'/cohorts/' + ${cohort.id} + '/graduates/export?track=TN'}" style="display:inline">
+                <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                <button type="submit">Export TN</button>
+            </form>
+            <a th:href="@{'/cohorts/' + ${cohort.id} + '/graduates/download?track=TN'}">Download TN</a>
+        </td>
+    </tr>
+    </tbody>
+</table>
+</body>
+</html>
