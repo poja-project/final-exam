@@ -68,7 +68,13 @@ public class AccountService {
   }
 
   private String generateStudentNumber(Cohort cohort) {
-    long countInCohort = studentRepository.findByCohort_Id(cohort.getId()).size();
-    return "STD-%d-%04d".formatted(cohort.getEntryYear(), countInCohort + 1);
+    // student_number is globally UNIQUE; do not key only on cohort-local count
+    long seq = studentRepository.count() + 1;
+    String candidate = "STD-%d-%04d".formatted(cohort.getEntryYear(), seq);
+    while (studentRepository.existsByStudentNumber(candidate)) {
+      seq++;
+      candidate = "STD-%d-%04d".formatted(cohort.getEntryYear(), seq);
+    }
+    return candidate;
   }
 }

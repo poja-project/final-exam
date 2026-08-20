@@ -85,13 +85,16 @@ class AccountControllerIT extends FacadeIT {
 
   @Test
   void createStudent_duplicateEmail_returns409() throws Exception {
+    String suffix = UUID.randomUUID().toString().substring(0, 8);
     var cohortRes =
         testRestTemplate.postForEntity(
             "/admin/cohorts",
             new HttpEntity<>(
-                mapper.writeValueAsString(Map.of("label", "Dup Cohort", "entryYear", 2024)),
+                mapper.writeValueAsString(
+                    Map.of("label", "Dup Cohort " + suffix, "entryYear", 2024)),
                 adminHeaders()),
             String.class);
+    assertThat(cohortRes.getStatusCode()).isEqualTo(HttpStatus.CREATED);
     UUID cohortId = extractId(cohortRes.getBody());
 
     var body =
@@ -101,13 +104,15 @@ class AccountControllerIT extends FacadeIT {
             "firstName",
             "Dup",
             "email",
-            "dup.test@prog4.local",
+            "dup.test." + suffix + "@prog4.local",
             "password",
             "Pass1234!",
             "cohortId",
             cohortId.toString());
     var request = new HttpEntity<>(mapper.writeValueAsString(body), adminHeaders());
-    testRestTemplate.postForEntity("/admin/users/students", request, String.class);
+    var first =
+        testRestTemplate.postForEntity("/admin/users/students", request, String.class);
+    assertThat(first.getStatusCode()).isEqualTo(HttpStatus.CREATED);
 
     var response =
         testRestTemplate.postForEntity(

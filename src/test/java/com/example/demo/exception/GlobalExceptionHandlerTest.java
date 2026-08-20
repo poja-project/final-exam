@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Map;
 import org.junit.jupiter.api.Test;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
@@ -55,5 +56,12 @@ class GlobalExceptionHandlerTest {
     assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
     Map<?, ?> body = (Map<?, ?>) response.getBody();
     assertThat(body.get("message")).isEqualTo("invalid arg");
+  }
+
+  @Test
+  void handleDataIntegrity_returns409() {
+    DataIntegrityViolationException ex = new DataIntegrityViolationException("uk_email");
+    ResponseEntity<Object> response = handler.handleDataIntegrity(ex);
+    assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
   }
 }

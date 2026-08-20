@@ -15,7 +15,6 @@ import com.example.demo.repository.CohortRepository;
 import com.example.demo.repository.StudentRepository;
 import com.example.demo.repository.TeacherRepository;
 import com.example.demo.repository.UserRepository;
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -64,7 +63,7 @@ class AccountServiceTest {
   }
 
   @Test
-  void createStudent_generatesSequentialStudentNumber_basedOnCohortEntryYearAndExistingCount() {
+  void createStudent_generatesSequentialStudentNumber_basedOnGlobalCountAndEntryYear() {
     Cohort cohort = new Cohort();
     cohort.setId(UUID.randomUUID());
     cohort.setEntryYear(2023);
@@ -72,8 +71,8 @@ class AccountServiceTest {
     when(userRepository.existsByEmail("student@prog4.local")).thenReturn(false);
     when(passwordEncoder.encode("Pass1234!")).thenReturn("hashed");
     when(userRepository.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
-    when(studentRepository.findByCohort_Id(cohort.getId()))
-        .thenReturn(List.of(new Student(), new Student()));
+    when(studentRepository.count()).thenReturn(2L);
+    when(studentRepository.existsByStudentNumber("STD-2023-0003")).thenReturn(false);
     when(studentRepository.save(any(Student.class))).thenAnswer(inv -> inv.getArgument(0));
 
     Student student =
