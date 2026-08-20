@@ -46,4 +46,14 @@ public class FacadeIT {
       log.warn("EnvConf missing: no project-specific test env vars will be set");
     }
   }
+
+  @org.springframework.beans.factory.annotation.Autowired
+  protected org.springframework.boot.test.web.client.TestRestTemplate testRestTemplate;
+
+  protected TestUtils utils;
+
+  @org.junit.jupiter.api.BeforeEach
+  void setupTestUtils() {
+    utils = new TestUtils(testRestTemplate);
+  }
 }
