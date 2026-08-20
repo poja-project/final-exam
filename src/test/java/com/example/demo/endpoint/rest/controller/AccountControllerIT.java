@@ -110,8 +110,7 @@ class AccountControllerIT extends FacadeIT {
             "cohortId",
             cohortId.toString());
     var request = new HttpEntity<>(mapper.writeValueAsString(body), adminHeaders());
-    var first =
-        testRestTemplate.postForEntity("/admin/users/students", request, String.class);
+    var first = testRestTemplate.postForEntity("/admin/users/students", request, String.class);
     assertThat(first.getStatusCode()).isEqualTo(HttpStatus.CREATED);
 
     var response =
